@@ -23,4 +23,16 @@ add_env_var() {
 }
 
 # GRAFANA credentials
+echo "GRAFANA_USER=admin" >> "$ENV_FILE"
 add_env_var GRAFANA_SECURE_PASS
+
+# Neo4j credentials
+echo "NEO4J_USER=admin" >> "$ENV_FILE"
+echo "NEO4J_DB=primary" >> "$ENV_FILE"
+add_env_var NEO4J_PASS
+
+# Postgresql credentials
+echo "POSTGRES_USER=admin" >> "$ENV_FILE"
+echo "POSTGRES_DB=primary" >> "$ENV_FILE"
+add_env_var POSTGRES_PASS
+

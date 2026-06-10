@@ -1,15 +1,75 @@
-volumes:
-  grafana-data:
-
 services:
+  neo4j:
+    image: neo4j:latest
+    container_name: skb-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASS}
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: skb-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres-init:
+    image: postgres:16-alpine
+    container_name: skb-postgres-init
+    profiles:
+      - init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./postgres-init:/scripts
+    environment:
+      - PGPASSWORD=${POSTGRES_PASS}
+      - PGUSER=${POSTGRES_USER}
+      - PGDATABASE=${POSTGRES_DB}
+      - PGHOST=postgres
+    command: sh -c "for f in /scripts/*.sql; do psql -f \"$f\"; done"
+    restart: no
+
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
+    container_name: skb-grafana
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_SECURE_PASS}
+      - GF_PLUGINS_PREINSTALL=kniepdennis-neo4j-datasource
+      - POSTGRES_DB=${POSTGRES_DB:-grafana}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+      - NEO4J_DB=${NEO4J_DB}
+      - NEO4J_PASSWORD=${NEO4J_PASS}
     restart: unless-stopped
+    depends_on:
+      - neo4j
+      - postgres
+
+volumes:
+  neo4j-data:
+  postgres-data:
+  grafana-data:
