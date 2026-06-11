@@ -36,3 +36,5 @@ echo "POSTGRES_USER=admin" >> "$ENV_FILE"
 echo "POSTGRES_DB=primary" >> "$ENV_FILE"
 add_env_var POSTGRES_PASS
 
+# Jupyter Notebook
+add_env_var JUPYTER_TOKEN
